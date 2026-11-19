@@ -3,29 +3,47 @@
 import sys
 from typing import List, Optional
 
-from src.apt_repo import Record, RepoError, find_package, load_index
+from src.apt_repo import RepoError, load_index
 from src.config import Config, ConfigError, parse_args
+from src.graph import Graph, build_graph, count_edges, find_cycles
+from src.sources import make_apt_source, make_test_source
 
 EXIT_OK = 0
 EXIT_ERROR = 2
 
 
-def print_direct_dependencies(record: Record) -> None:
-    """Вывести прямые зависимости пакета (альтернативы через « | »)."""
-    print(f"Прямые зависимости {record.name} {record.version}:")
-    if not record.depends:
-        print("  (нет зависимостей)")
-    for group in record.depends:
-        print("  " + " | ".join(group))
+def print_graph(package: str, graph: Graph) -> None:
+    """Вывести граф зависимостей в виде списков смежности."""
+    print(f"Граф зависимостей {package} (BFS с рекурсией):")
+    for name, deps in graph.items():
+        print(f"  {name} -> {', '.join(deps) if deps else '-'}")
+    print(f"Вершин: {len(graph)}, рёбер: {count_edges(graph)}")
+
+
+def print_cycles(package: str, graph: Graph) -> None:
+    """Сообщить о циклических зависимостях, если они есть."""
+    cycles = find_cycles(graph, package)
+    if not cycles:
+        print("Циклических зависимостей нет")
+        return
+    print("Обнаружены циклические зависимости (замыкающие рёбра):")
+    for source, target in cycles:
+        print(f"  {source} -> {target}")
+
+
+def make_source(config: Config):
+    """Создать источник зависимостей для выбранного режима работы."""
+    if config.test_mode:
+        return make_test_source(config.repo, config.package, config.version)
+    index = load_index(config.repo)
+    return make_apt_source(index, config.package, config.version)
 
 
 def run(config: Config) -> None:
-    """Выполнить сбор данных и вывести прямые зависимости."""
-    if config.test_mode:
-        raise RepoError("тестовый режим пока не поддерживается")
-    index = load_index(config.repo)
-    record = find_package(index, config.package, config.version)
-    print_direct_dependencies(record)
+    """Построить граф зависимостей и вывести его."""
+    graph = build_graph(config.package, make_source(config))
+    print_graph(config.package, graph)
+    print_cycles(config.package, graph)
 
 
 def main(argv: Optional[List[str]] = None) -> int:
