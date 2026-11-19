@@ -7,17 +7,16 @@ from src.apt_repo import RepoError, load_index
 from src.config import Config, ConfigError, parse_args
 from src.graph import (Graph, build_graph, count_edges, dfs_postorder,
                        find_cycles)
+from src.render import (RenderError, ascii_tree, d2_path_for, render_image,
+                        write_d2)
 from src.sources import make_apt_source, make_test_source
 
 EXIT_OK = 0
 EXIT_ERROR = 2
 
 
-def print_graph(package: str, graph: Graph) -> None:
-    """Вывести граф зависимостей в виде списков смежности."""
-    print(f"Граф зависимостей {package} (BFS с рекурсией):")
-    for name, deps in graph.items():
-        print(f"  {name} -> {', '.join(deps) if deps else '-'}")
+def print_summary(graph: Graph) -> None:
+    """Вывести число вершин и рёбер построенного графа."""
     print(f"Вершин: {len(graph)}, рёбер: {count_edges(graph)}")
 
 
@@ -51,21 +50,33 @@ def make_source(config: Config):
     return make_apt_source(index, config.package, config.version)
 
 
+def save_image(config: Config, graph: Graph) -> None:
+    """Сохранить описание D2 и построить изображение графа."""
+    d2_path = d2_path_for(config.output)
+    write_d2(graph, d2_path)
+    render_image(d2_path, config.output)
+    print(f"Описание графа D2: {d2_path}")
+    print(f"Изображение графа: {config.output}")
+
+
 def run(config: Config) -> None:
-    """Построить граф зависимостей и вывести граф либо порядок загрузки."""
+    """Построить граф и вывести порядок загрузки либо дерево и картинку."""
     graph = build_graph(config.package, make_source(config))
     if config.order:
         print_load_order(config.package, graph)
         return
-    print_graph(config.package, graph)
+    print_summary(graph)
     print_cycles(config.package, graph)
+    if config.tree:
+        print(ascii_tree(graph, config.package))
+    save_image(config, graph)
 
 
 def main(argv: Optional[List[str]] = None) -> int:
     """Запустить приложение и вернуть код завершения."""
     try:
         run(parse_args(argv))
-    except (ConfigError, RepoError) as error:
+    except (ConfigError, RepoError, RenderError) as error:
         print(f"Ошибка: {error}", file=sys.stderr)
         return EXIT_ERROR
     return EXIT_OK
