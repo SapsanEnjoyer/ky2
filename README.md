@@ -120,6 +120,59 @@ make run ARGS="-p A -r tests/data/large.txt -t --order"
    и версии, а мы берём первую подходящую альтернативу и не учитываем
    эти поля.
 
+## Визуализация (этап 5)
+
+Граф записывается в текстовый файл на языке [D2](https://d2lang.com)
+(рядом с изображением, с расширением `.d2`), затем утилита `d2`
+превращает его в PNG (`src/render.py`). Вершины — пакеты, рёбра — прямые
+зависимости, направление слева направо.
+
+Установка `d2`: `curl -fsSL https://d2lang.com/install.sh | sh -s --`
+(Linux/macOS) или `winget install terrastruct.d2` (Windows). При первом
+построении PNG `d2` скачивает браузерный движок Playwright, нужен доступ в
+интернет.
+
+```
+make run ARGS="-p bash -r http://archive.ubuntu.com/ubuntu/dists/noble/main/binary-amd64 --tree -o bash.png"
+```
+
+Фрагмент `bash.d2`:
+
+```
+direction: right
+"bash" -> "libc6"
+"bash" -> "libtinfo6"
+"bash" -> "base-files"
+"bash" -> "debianutils"
+"libc6" -> "libgcc-s1"
+```
+
+Опция `--tree` печатает ASCII-дерево. Уже раскрытые вершины помечаются
+`(см. выше)`, вершины, замыкающие цикл, — `(цикл)`:
+
+```
+bash
+├── libc6
+│   └── libgcc-s1
+│       ├── gcc-14-base
+│       └── libc6 (цикл)
+├── libtinfo6
+│   └── libc6 (см. выше)
+├── base-files
+...
+```
+
+Размеры графов для пакетов `noble-updates/main`:
+
+| Пакет | Вершин | Рёбер |
+|-------|--------|-------|
+| apache2 | 73 | 180 |
+| python3 | 33 | 60 |
+| curl | 32 | 69 |
+
+Во всех трёх есть цикл `libgcc-s1 -> libc6`. Файлы `*.png`, `*.svg` и
+`*.d2` игнорируются git, чтобы в репозиторий не попадали результаты работы.
+
 ## Сборка и тесты
 
 ```
