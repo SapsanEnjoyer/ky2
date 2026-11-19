@@ -27,6 +27,7 @@ class Config:
     version: Optional[str]
     output: str
     tree: bool
+    order: bool
 
 
 class _Parser(argparse.ArgumentParser):
@@ -55,6 +56,8 @@ def build_parser() -> argparse.ArgumentParser:
                         help="имя файла с изображением графа")
     parser.add_argument("--tree", action="store_true",
                         help="вывести зависимости в виде ASCII-дерева")
+    parser.add_argument("--order", action="store_true",
+                        help="вывести порядок загрузки зависимостей")
     return parser
 
 
@@ -110,4 +113,5 @@ def parse_args(argv: Optional[List[str]] = None) -> Config:
         version=args.version,
         output=args.output,
         tree=args.tree,
+        order=args.order,
     )
