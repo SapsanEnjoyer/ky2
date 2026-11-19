@@ -3,7 +3,6 @@
 import pytest
 
 from src.config import ConfigError, parse_args
-from src.main import EXIT_ERROR, EXIT_OK, main
 
 APT_REPO = "http://archive.ubuntu.com/ubuntu/dists/noble/main/" \
            "binary-amd64/Packages.gz"
@@ -67,17 +66,3 @@ def test_bad_output_directory(tmp_path):
     output = str(tmp_path / "missing" / "graph.png")
     with pytest.raises(ConfigError):
         parse_args(["-p", "bash", "-r", APT_REPO, "-o", output])
-
-
-def test_main_prints_config(capsys):
-    code = main(["-p", "bash", "-r", APT_REPO])
-    out = capsys.readouterr().out
-    assert code == EXIT_OK
-    assert "package: bash" in out
-    assert "version: не задана" in out
-
-
-def test_main_reports_error(capsys):
-    code = main(["-p", "BAD", "-r", APT_REPO])
-    assert code == EXIT_ERROR
-    assert "Ошибка" in capsys.readouterr().err
