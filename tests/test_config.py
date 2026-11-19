@@ -22,6 +22,12 @@ def test_parse_test_mode(tmp_path):
     config = parse_args(["-p", "A", "-r", str(repo), "-t", "--tree"])
     assert config.test_mode is True
     assert config.tree is True
+    assert config.order is False
+
+
+def test_parse_order_flag():
+    config = parse_args(["-p", "bash", "-r", APT_REPO, "--order"])
+    assert config.order is True
 
 
 def test_missing_package():

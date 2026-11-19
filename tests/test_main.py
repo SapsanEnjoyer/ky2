@@ -7,6 +7,7 @@ import pytest
 from src.main import EXIT_ERROR, EXIT_OK, main
 
 DATA = os.path.join(os.path.dirname(__file__), "data")
+SINGLE = 1
 
 
 def run_test_mode(name, package, capsys):
@@ -79,3 +80,32 @@ def test_unknown_package(capsys):
 def test_config_error(capsys):
     assert main(["-p", "BAD", "-r", "http://x"]) == EXIT_ERROR
     assert "Ошибка" in capsys.readouterr().err
+
+
+def test_order_chain(capsys):
+    path = os.path.join(DATA, "chain.txt")
+    assert main(["-p", "A", "-r", path, "-t", "--order"]) == EXIT_OK
+    lines = capsys.readouterr().out.splitlines()
+    assert lines[1:] == ["  1. D", "  2. C", "  3. B", "  4. A"]
+
+
+def test_order_diamond_shared_dependency_once(capsys):
+    path = os.path.join(DATA, "diamond.txt")
+    main(["-p", "A", "-r", path, "-t", "--order"])
+    out = capsys.readouterr().out
+    assert out.count(". D") == SINGLE
+    assert out.index(". D") < out.index(". B") < out.index(". A")
+
+
+def test_order_with_cycle_reports_broken_edge(capsys):
+    path = os.path.join(DATA, "cycle.txt")
+    main(["-p", "A", "-r", path, "-t", "--order"])
+    out = capsys.readouterr().out
+    assert "  1. C" in out
+    assert "Циклы разорваны на рёбрах: C -> A" in out
+
+
+def test_order_apt(mirror, capsys):
+    main(["-p", "alpha", "-r", mirror, "--order"])
+    out = capsys.readouterr().out
+    assert out.splitlines()[-1] == "  4. alpha"
