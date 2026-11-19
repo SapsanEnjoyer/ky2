@@ -4,6 +4,19 @@
 Реализован на Python 3.10+ без сторонних библиотек для получения
 зависимостей.
 
+## Сбор данных (этап 2)
+
+Репозиторием считается URL каталога с индексом пакетов Ubuntu или прямой
+URL файла `Packages`, `Packages.gz` или `Packages.xz`. Если указан
+каталог, к нему добавляется `/Packages.gz`. Индекс скачивается модулем
+`urllib` и разбирается вручную (`src/apt_repo.py`): из каждого описания
+берутся поля `Package`, `Version`, `Pre-Depends`, `Depends`, `Provides`.
+Из зависимостей удаляются ограничения версий, архитектуры и фильтры сборки.
+Альтернативы (`a | b`) сохраняются как группа.
+
+Если указана `--version`, выбирается запись с точно такой версией, иначе
+первая запись пакета.
+
 ## Параметры командной строки
 
 | Опция | Описание |
@@ -20,7 +33,17 @@
 ```
 pip install -r requirements.txt
 make test
-make run ARGS="-p bash -r http://archive.ubuntu.com/ubuntu"
+make run ARGS="-p bash -v 5.2.21-2ubuntu4 -r http://archive.ubuntu.com/ubuntu/dists/noble/main/binary-amd64"
+```
+
+Пример вывода:
+
+```
+Прямые зависимости bash 5.2.21-2ubuntu4:
+  libc6
+  libtinfo6
+  base-files
+  debianutils
 ```
 
 ## Обработка ошибок
