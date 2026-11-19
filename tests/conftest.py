@@ -51,3 +51,23 @@ def mirror(tmp_path):
     yield f"http://127.0.0.1:{server.server_address[1]}"
     server.shutdown()
     server.server_close()
+
+
+@pytest.fixture
+def fake_d2(tmp_path, monkeypatch):
+    """Подменить утилиту d2 скриптом, создающим выходной файл."""
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir()
+    script = bin_dir / "d2"
+    body = ('#!/bin/sh\n[ -f "$1" ] || { echo "no input" >&2; exit 1; }\n'
+            'echo image > "$2"\n')
+    script.write_text(body, encoding="utf-8")
+    script.chmod(0o755)
+    monkeypatch.setenv("PATH", str(bin_dir))
+    return script
+
+
+@pytest.fixture
+def no_d2(tmp_path, monkeypatch):
+    """Скрыть утилиту d2 из PATH."""
+    monkeypatch.setenv("PATH", str(tmp_path))
