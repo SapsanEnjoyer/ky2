@@ -30,7 +30,7 @@ class Config:
     order: bool
 
 
-class _Parser(argparse.ArgumentParser):
+class StrictArgumentParser(argparse.ArgumentParser):
     """Парсер, который сообщает об ошибках исключением."""
 
     def error(self, message):
@@ -40,7 +40,7 @@ class _Parser(argparse.ArgumentParser):
 
 def build_parser() -> argparse.ArgumentParser:
     """Создать парсер опций командной строки."""
-    parser = _Parser(
+    parser = StrictArgumentParser(
         prog="apt-deps-graph",
         description="Визуализация графа зависимостей пакетов apt.",
     )
